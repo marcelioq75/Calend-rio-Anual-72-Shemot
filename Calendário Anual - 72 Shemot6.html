@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal 72 Nomes de Deus</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;700&family=Frank+Ruhl+Libre:wght@700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --ouro: #c5a021;
+            --vinho: #4a0e0e;
+            --creme: #fdfaf6;
+            --branco: #ffffff;
+            --transparente: rgba(255, 255, 255, 0.9);
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--creme);
+            color: #333;
+            margin: 0;
+            line-height: 1.6;
+        }
+
+        /* Barra de Navegação Superior */
+        nav {
+            background-color: var(--vinho);
+            padding: 15px 0;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        nav h1 {
+            color: var(--ouro);
+            margin: 0;
+            font-size: 1.2rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 0 15px;
+        }
+
+        /* Estilo dos Meses (Accordion) */
+        .mes-secao {
+            background: var(--branco);
+            border-radius: 12px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            overflow: hidden;
+            border: 1px solid #eee;
+        }
+
+        .mes-header {
+            background-color: #fcfcfc;
+            padding: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: var(--vinho);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.3s;
+        }
+
+        .mes-header:hover { background-color: #f0f0f0; }
+
+        /* Grade de Dias */
+        .dia-container {
+            display: none; /* Escondido por padrão */
+            padding: 10px;
+            border-top: 1px solid #eee;
+        }
+
+        /* Card Individual do Anjo */
+        .anjo-card {
+            background: var(--branco);
+            margin-bottom: 25px;
+            padding: 25px;
+            border-radius: 8px;
+            border-left: 6px solid var(--ouro);
+            box-shadow: 0 2px 15px rgba(0,0,0,0.05);
+        }
+
+        /* Tipografia Hebraica */
+        .hebraico-display {
+            font-family: 'Frank Ruhl+Libre', serif;
+            font-size: 3.5rem;
+            color: var(--vinho);
+            text-align: right;
+            direction: rtl;
+            margin-bottom: 10px;
+            line-height: 1.2;
+        }
+
+        .anjo-meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 15px;
+            background: #fdfdfd;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #f0f0f0;
+        }
+
+        .meta-item { font-size: 0.85rem; }
+        .meta-label { color: #888; text-transform: uppercase; font-weight: bold; font-size: 0.7rem; display: block; }
+        .meta-valor { color: #222; font-weight: 600; }
+
+        /* Links e Mídia */
+        .media-area { margin-top: 20px; }
+        .video-links a {
+            display: inline-block;
+            padding: 8px 16px;
+            background: var(--vinho);
+            color: var(--ouro);
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            transition: 0.3s;
+        }
+        .video-links a:hover { opacity: 0.8; }
+
+        .img-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .img-grid img {
+            width: 100%;
+            height: auto;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+        }
+
+        .status-msg { text-align: center; padding: 50px; font-weight: bold; color: var(--vinho); }
+
+    </style>
+</head>
+<body>
+
+<nav>
+    <h1>72 Nomes de Deus - Portal</h1>
+</nav>
+
+<div class="container" id="main-content">
+    <div class="status-msg">Iniciando sincronização de dados sagrados...</div>
+</div>
+
+<script>
+    // Link CSV direto da sua planilha publicada
+    const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTqxhrveESQ9W-lHcP24WEBaZ3tYuWAqKHoVO_v_vknIJI01Th2f0zF2HQIOvnmkXTh2-dAtl3hGPfb/pub?output=csv';
+    
+    // Proxy AllOrigins para evitar erro de CORS em ambiente local e produção
+    const API_URL = `https://api.allorigins.win/get?url=${encodeURIComponent(SHEET_CSV_URL)}&timestamp=${Date.now()}`;
+
+    async function init() {
+        try {
+            const response = await fetch(API_URL);
+            if (!response.ok) throw new Error("Erro de conexão");
+            
+            const json = await response.json();
+            const data = json.contents;
+            
+            const rows = data.split(/\r?\n/).filter(r => r.trim() !== "");
+            const header = rows.shift(); // Remove cabeçalho
+            const separator = header.includes(';') ? ';' : ',';
+
+            const db = {};
+
+            rows.forEach(row => {
+                const col = row.split(separator).map(s => s.replace(/^"|"$/g, '').trim());
+                if (col.length < 2) return;
+
+                const mes = col[0];
+                if (!db[mes]) db[mes] = [];
+
+                db[mes].push({
+                    dia: col[1], num: col[2], triade: col[3], vocal: col[4],
+                    horario: col[5], salmo: col[6], anjo: col[7], anjoHeb: col[8],
+                    v1: col[9], v2: col[10], v3: col[11], img1: col[12], img2: col[13]
+                });
+            });
+
+            renderApp(db);
+        } catch (error) {
+            document.getElementById('main-content').innerHTML = `
+                <div style="color:red; text-align:center; padding:50px;">
+                    Erro ao carregar banco de dados. Verifique a publicação da sua planilha.<br>
+                    <small>${error.message}</small>
+                </div>`;
+        }
+    }
+
+    function renderApp(db) {
+        const content = document.getElementById('main-content');
+        content.innerHTML = ""; // Limpa carregamento
+
+        const meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+        meses.forEach(mes => {
+            if (!db[mes]) return;
+
+            const mesDiv = document.createElement('div');
+            mesDiv.className = 'mes-secao';
+            
+            let diasHTML = "";
+            db[mes].forEach(d => {
+                diasHTML += `
+                    <div class="anjo-card">
+                        <div class="hebraico-display">${d.triade}</div>
+                        <div style="margin-bottom:15px; font-weight:bold; color:var(--ouro);">DIA ${d.dia} • NOME #${d.num}</div>
+                        
+                        <div class="anjo-meta">
+                            <div class="meta-item"><span class="meta-label">Anjo (Ocidental)</span><span class="meta-valor">${d.anjo}</span></div>
+                            <div class="meta-item"><span class="meta-label">Vocalização</span><span class="meta-valor">${d.vocal}</span></div>
+                            <div class="meta-item"><span class="meta-label">Horário</span><span class="meta-valor">${d.horario}</span></div>
+                            <div class="meta-item"><span class="meta-label">Salmo</span><span class="meta-valor">${d.salmo}</span></div>
+                        </div>
+
+                        <div class="hebraico-display" style="font-size:1.8rem; margin-top:20px; color:var(--ouro);">${d.anjoHeb}</div>
+                        
+                        <div class="media-area">
+                            <div class="video-links">
+                                ${d.v1 && d.v1 !== '#' ? `<a href="${d.v1}" target="_blank">VÍDEO 1</a>` : ''}
+                                ${d.v2 && d.l2 !== '#' ? `<a href="${d.v2}" target="_blank">VÍDEO 2</a>` : ''}
+                                ${d.v3 && d.l3 !== '#' ? `<a href="${d.v3}" target="_blank">VÍDEO 3</a>` : ''}
+                            </div>
+                            <div class="img-grid">
+                                ${d.img1 && d.img1 !== '#' ? `<img src="${d.img1}" alt="Ilustração">` : ''}
+                                ${d.img2 && d.img2 !== '#' ? `<img src="${d.img2}" alt="Ilustração">` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            mesDiv.innerHTML = `
+                <div class="mes-header" onclick="toggle('${mes}')">
+                    ${mes.toUpperCase()} <span>▼</span>
+                </div>
+                <div id="${mes}" class="dia-container">
+                    ${diasHTML}
+                </div>
+            `;
+            content.appendChild(mesDiv);
+        });
+    }
+
+    function toggle(id) {
+        const el = document.getElementById(id);
+        el.style.display = el.style.display === "block" ? "none" : "block";
+    }
+
+    init();
+</script>
+</body>
+</html>
